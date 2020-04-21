@@ -23,7 +23,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		F80D530B244E9DEB00567776 /* PolygonColisions */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PolygonColisions; sourceTree = BUILT_PRODUCTS_DIR; };
+		F80D530B244E9DEB00567776 /* olcPolygonCollisions */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = olcPolygonCollisions; sourceTree = BUILT_PRODUCTS_DIR; };
 		F80D530E244E9DEB00567776 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		F80D5310244E9DEB00567776 /* olcPixelGameEngine.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = olcPixelGameEngine.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -42,7 +42,7 @@
 		F80D5302244E9DEB00567776 = {
 			isa = PBXGroup;
 			children = (
-				F80D530D244E9DEB00567776 /* PolygonColisions */,
+				F80D530D244E9DEB00567776 /* olcPolygonCollisions */,
 				F80D530C244E9DEB00567776 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -50,26 +50,26 @@
 		F80D530C244E9DEB00567776 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F80D530B244E9DEB00567776 /* PolygonColisions */,
+				F80D530B244E9DEB00567776 /* olcPolygonCollisions */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		F80D530D244E9DEB00567776 /* PolygonColisions */ = {
+		F80D530D244E9DEB00567776 /* olcPolygonCollisions */ = {
 			isa = PBXGroup;
 			children = (
 				F80D530E244E9DEB00567776 /* main.cpp */,
 				F80D5310244E9DEB00567776 /* olcPixelGameEngine.h */,
 			);
-			path = PolygonColisions;
+			path = olcPolygonCollisions;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		F80D530A244E9DEB00567776 /* PolygonColisions */ = {
+		F80D530A244E9DEB00567776 /* olcPolygonCollisions */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = F80D5313244E9DEB00567776 /* Build configuration list for PBXNativeTarget "PolygonColisions" */;
+			buildConfigurationList = F80D5313244E9DEB00567776 /* Build configuration list for PBXNativeTarget "olcPolygonCollisions" */;
 			buildPhases = (
 				F80D5307244E9DEB00567776 /* Sources */,
 				F80D5308244E9DEB00567776 /* Frameworks */,
@@ -79,9 +79,9 @@
 			);
 			dependencies = (
 			);
-			name = PolygonColisions;
+			name = olcPolygonCollisions;
 			productName = PolygonColisions;
-			productReference = F80D530B244E9DEB00567776 /* PolygonColisions */;
+			productReference = F80D530B244E9DEB00567776 /* olcPolygonCollisions */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -98,7 +98,7 @@
 					};
 				};
 			};
-			buildConfigurationList = F80D5306244E9DEB00567776 /* Build configuration list for PBXProject "PolygonColisions" */;
+			buildConfigurationList = F80D5306244E9DEB00567776 /* Build configuration list for PBXProject "olcPolygonCollisions" */;
 			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -111,7 +111,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				F80D530A244E9DEB00567776 /* PolygonColisions */,
+				F80D530A244E9DEB00567776 /* olcPolygonCollisions */,
 			);
 		};
 /* End PBXProject section */
@@ -284,7 +284,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		F80D5306244E9DEB00567776 /* Build configuration list for PBXProject "PolygonColisions" */ = {
+		F80D5306244E9DEB00567776 /* Build configuration list for PBXProject "olcPolygonCollisions" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F80D5311244E9DEB00567776 /* Debug */,
@@ -293,7 +293,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		F80D5313244E9DEB00567776 /* Build configuration list for PBXNativeTarget "PolygonColisions" */ = {
+		F80D5313244E9DEB00567776 /* Build configuration list for PBXNativeTarget "olcPolygonCollisions" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F80D5314244E9DEB00567776 /* Debug */,
