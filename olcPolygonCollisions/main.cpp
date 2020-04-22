@@ -64,18 +64,15 @@ class PolygonCollisions : public olc::PixelGameEngine {
         sPolygon s3;
         s3.pos = { 50, 200 };
         s3.angle = 0.0f;
-        for(int i = 0; i < 3; i++)
-        {
-            s3.o.push_back({-30,-30});
-            s3.o.push_back({-30,+30});
-            s3.o.push_back({+30,+30});
-            s3.o.push_back({+30,-30});
-            s3.p.push_back({-30,-30});
-            s3.p.push_back({-30,+30});
-            s3.p.push_back({+30,+30});
-            s3.p.push_back({+30,-30});
-//            s3.p.resize(4);
-        }
+        s3.o.push_back({-30,-30});
+        s3.o.push_back({-30,+30});
+        s3.o.push_back({+30,+30});
+        s3.o.push_back({+30,-30});
+        //            s3.p.push_back({-30,-30});
+        //            s3.p.push_back({-30,+30});
+        //            s3.p.push_back({+30,+30});
+        //            s3.p.push_back({+30,-30});
+        s3.p.resize(4);
         
         // Add shapes
         vecShapes.push_back(s1);
@@ -88,6 +85,8 @@ class PolygonCollisions : public olc::PixelGameEngine {
     /// Check if the two polygons overlap using SAT (Separated Axis Theorem)
     /// Where be basically project a "shadow" of each polygon onto an axis parallel to the normal of each
     /// edge of each polygon and if any of the "shadows" don't overlap, the shapes don't overlap.
+    /// @param r1 First Polygon
+    /// @param r2 Second Polygon
     bool ShapeOverlap_SAT(const sPolygon &r1, const sPolygon &r2)
     {
         const sPolygon *poly1;
@@ -154,6 +153,211 @@ class PolygonCollisions : public olc::PixelGameEngine {
         // Every "shadow" overlapped, so the shapes overlap
         return true;
     }
+  
+    
+    /// Check if the two polygons overlap using SAT (Separated Axis Theorem) and then resolve it
+    /// Where be basically project a "shadow" of each polygon onto an axis parallel to the normal of each
+    /// edge of each polygon and if any of the "shadows" don't overlap, the shapes don't overlap.
+    /// @param r1 First Polygon
+    /// @param r2 Second Polygon
+    bool ShapeOverlap_SAT_STATIC(sPolygon &r1, sPolygon &r2)
+    {
+        const sPolygon *poly1;
+        const sPolygon *poly2;
+        
+        float overlap = INFINITY;
+        
+        for(int shape = 0; shape < 2; shape++)
+        {
+            if(shape == 0)
+            {
+                // First test r1 against r2
+                poly1 = &r1;
+                poly2 = &r2;
+            }
+            else
+            {
+                // Then test r2 against r1
+                poly1 = &r2;
+                poly2 = &r1;
+            }
+            
+            // Process each edge
+            for(int a = 0; a < poly1->p.size(); a++)
+            {
+                // Get the other point for this edge
+                int b = (a + 1) % poly1->p.size();
+                
+                // Create a vector along the normal of this edge (-y, x)
+                sVec2d axisProj = { -(poly1->p[b].y - poly1->p[a].y), poly1->p[b].x - poly1->p[a].x};
+                
+                // Calculate the min and max 1D points for the shadow of r1
+                float min_r1 = INFINITY, max_r1 = -INFINITY;
+                for(int p = 0; p < poly1->p.size(); p++)
+                {
+                    // Calculate projection as the dot product of each point and the axis
+                    float q = (poly1->p[p].x * axisProj.x + poly1->p[p].y * axisProj.y);
+                    
+                    // Keep track of the total "shadow" cast on the axis
+                    min_r1 = std::min(min_r1, q);
+                    max_r1 = std::max(max_r1, q);
+                }
+                
+                // Calculate the min and max 1D points for the shadow r2
+                float min_r2 = INFINITY, max_r2 = -INFINITY;
+                for(int p = 0; p < poly2->p.size(); p++)
+                {
+                    // Calculate projection as the dot product of each point and the axis
+                    float q = (poly2->p[p].x * axisProj.x + poly2->p[p].y * axisProj.y);
+                    
+                    // Keep track of the total "shadow" cast on the axis
+                    min_r2 = std::min(min_r2, q);
+                    max_r2 = std::max(max_r2, q);
+                }
+                
+                // Calculate actual overlap along projected axis, and store the minimum
+                overlap = std::min(std::min(max_r1, max_r2) - std::max(min_r1, min_r2), overlap);
+
+                
+                if(!(max_r1 >= min_r2 && max_r2 >= min_r1))
+                {
+                    // We have an edge that the "shadows" don't overlap, so the objects don't overlap
+                    return false;
+                }
+                
+            }
+            
+        }
+        
+        // If we got here, the objects have collided, we will displace r1
+        // by overlap along the vector between the two object centers
+        sVec2d d = { r2.pos.x - r1.pos.x, r2.pos.y - r1.pos.y };
+        float s = sqrtf(d.x*d.x + d.y*d.y);
+        r1.pos.x -= overlap * d.x / s;
+        r1.pos.y -= overlap * d.y / s;
+        
+        return false;
+    }
+    
+    
+    /// Check if the two polygons overlap using OLC's Diagonal algorithm
+    /// We intersect each diagonal line from the center of the first polygon with each edge of the second polygon.
+    /// This not only tells us that the objects intersect, but also how far along the diagonal the intersection occurs,
+    /// which would allow us to statically adjust the position of the polygon(s) to stop the intersection.
+    /// @param r1 First Polygon
+    /// @param r2 Second Polygon
+    bool ShapeOverlap_DIAG(const sPolygon &r1, const sPolygon &r2)
+    {
+        const sPolygon *poly1;
+        const sPolygon *poly2;
+        
+        for(int shape = 0; shape < 2; shape++)
+        {
+            if(shape == 0)
+            {
+                // First test r1 against r2
+                poly1 = &r1;
+                poly2 = &r2;
+            }
+            else
+            {
+                // Then test r2 against r1
+                poly1 = &r2;
+                poly2 = &r1;
+            }
+            
+            // Check diagonals of polygon...
+            for (int p = 0; p < poly1->p.size(); p++)
+            {
+                sVec2d line_r1s = poly1->pos;
+                sVec2d line_r1e = poly1->p[p];
+
+                // ...against edges of the other
+                for (int q = 0; q < poly2->p.size(); q++)
+                {
+                    sVec2d line_r2s = poly2->p[q];
+                    sVec2d line_r2e = poly2->p[(q + 1) % poly2->p.size()];
+
+                    // Standard "off the shelf" line segment intersection
+                    float h = (line_r2e.x - line_r2s.x) * (line_r1s.y - line_r1e.y) - (line_r1s.x - line_r1e.x) * (line_r2e.y - line_r2s.y);
+                    float t1 = ((line_r2s.y - line_r2e.y) * (line_r1s.x - line_r2s.x) + (line_r2e.x - line_r2s.x) * (line_r1s.y - line_r2s.y)) / h;
+                    float t2 = ((line_r1s.y - line_r1e.y) * (line_r1s.x - line_r2s.x) + (line_r1e.x - line_r1s.x) * (line_r1s.y - line_r2s.y)) / h;
+
+                    if (t1 >= 0.0f && t1 < 1.0f && t2 >= 0.0f && t2 < 1.0f)
+                    {
+                        // The shapes intersect
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        // No intersection
+        return false;
+    }
+    
+    
+    /// Check if the two polygons overlap using OLC's Diagonal algorithm and then resolve it
+    /// We intersect each diagonal line from the center of the first polygon with each edge of the second polygon.
+    /// This not only tells us that the objects intersect, but also how far along the diagonal the intersection occurs,
+    /// which would allow us to statically adjust the position of the polygon(s) to stop the intersection.
+    /// @param r1 First Polygon
+    /// @param r2 Second Polygon
+    bool ShapeOverlap_DIAG_STATIC(sPolygon &r1, sPolygon &r2)
+    {
+        const sPolygon *poly1;
+        const sPolygon *poly2;
+        
+        for(int shape = 0; shape < 2; shape++)
+        {
+            if(shape == 0)
+            {
+                // First test r1 against r2
+                poly1 = &r1;
+                poly2 = &r2;
+            }
+            else
+            {
+                // Then test r2 against r1
+                poly1 = &r2;
+                poly2 = &r1;
+            }
+            
+            // Check diagonals of polygon...
+            for (int p = 0; p < poly1->p.size(); p++)
+            {
+                sVec2d line_r1s = poly1->pos;
+                sVec2d line_r1e = poly1->p[p];
+                
+                sVec2d displacement = {0,0};
+
+                // ...against edges of the other
+                for (int q = 0; q < poly2->p.size(); q++)
+                {
+                    sVec2d line_r2s = poly2->p[q];
+                    sVec2d line_r2e = poly2->p[(q + 1) % poly2->p.size()];
+
+                    // Standard "off the shelf" line segment intersection
+                    float h = (line_r2e.x - line_r2s.x) * (line_r1s.y - line_r1e.y) - (line_r1s.x - line_r1e.x) * (line_r2e.y - line_r2s.y);
+                    float t1 = ((line_r2s.y - line_r2e.y) * (line_r1s.x - line_r2s.x) + (line_r2e.x - line_r2s.x) * (line_r1s.y - line_r2s.y)) / h;
+                    float t2 = ((line_r1s.y - line_r1e.y) * (line_r1s.x - line_r2s.x) + (line_r1e.x - line_r1s.x) * (line_r1s.y - line_r2s.y)) / h;
+
+                    if (t1 >= 0.0f && t1 < 1.0f && t2 >= 0.0f && t2 < 1.0f)
+                    {
+                        // Accumulate displacments necessary to resolve the collision
+                        displacement.x += (1.0f - t1) * (line_r1e.x - line_r1s.x);
+                        displacement.y += (1.0f - t1) * (line_r1e.y - line_r1s.y);
+                    }
+                }
+                
+                r1.pos.x += displacement.x * (shape == 0 ? -1 : +1);
+                r1.pos.y += displacement.y * (shape == 0 ? -1 : +1);
+            }
+        }
+        
+        // Cant overlap if static collision is resolved
+        return false;
+    }
     
     
     bool OnUserUpdate(float fElapsedTime) override
@@ -202,10 +406,18 @@ class PolygonCollisions : public olc::PixelGameEngine {
             for(int n = m + 1; n < vecShapes.size(); n++)
             {
                 // If this shape is not already known to be overlapping, test it
-                if((!vecShapes[m].overlap || !vecShapes[n].overlap) && ShapeOverlap_SAT(vecShapes[m], vecShapes[n]))
+                if(!vecShapes[m].overlap || !vecShapes[n].overlap)
                 {
-                    vecShapes[m].overlap = true;
-                    vecShapes[n].overlap = true;
+                    bool overlap = false;
+                    //overlap = ShapeOverlap_SAT(vecShapes[m], vecShapes[n]);
+                    overlap = ShapeOverlap_SAT_STATIC(vecShapes[m], vecShapes[n]);
+                    //overlap = ShapeOverlap_DIAG(vecShapes[m], vecShapes[n]);
+                    //overlap = ShapeOverlap_DIAG_STATIC(vecShapes[m], vecShapes[n]);
+                    if(overlap)
+                    {
+                        vecShapes[m].overlap = true;
+                        vecShapes[n].overlap = true;
+                    }
                 }
             }
         
