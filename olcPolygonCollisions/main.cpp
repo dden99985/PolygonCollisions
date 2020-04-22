@@ -9,7 +9,7 @@ class PolygonCollisions : public olc::PixelGameEngine {
     
     PolygonCollisions()
     {
-        sAppName = "PolygonCollisions";
+        sAppName = "Polygon Collisions";
     }
 
     /// 2d Vector
@@ -70,7 +70,11 @@ class PolygonCollisions : public olc::PixelGameEngine {
             s3.o.push_back({-30,+30});
             s3.o.push_back({+30,+30});
             s3.o.push_back({+30,-30});
-            s3.p.resize(4);
+            s3.p.push_back({-30,-30});
+            s3.p.push_back({-30,+30});
+            s3.p.push_back({+30,+30});
+            s3.p.push_back({+30,-30});
+//            s3.p.resize(4);
         }
         
         // Add shapes
@@ -84,10 +88,10 @@ class PolygonCollisions : public olc::PixelGameEngine {
     /// Check if the two polygons overlap using SAT (Separated Axis Theorem)
     /// Where be basically project a "shadow" of each polygon onto an axis parallel to the normal of each
     /// edge of each polygon and if any of the "shadows" don't overlap, the shapes don't overlap.
-    bool ShapeOverlap_SAT(sPolygon &r1, sPolygon &r2)
+    bool ShapeOverlap_SAT(const sPolygon &r1, const sPolygon &r2)
     {
-        sPolygon *poly1;
-        sPolygon *poly2;
+        const sPolygon *poly1;
+        const sPolygon *poly2;
         
         for(int shape = 0; shape < 2; shape++)
         {
@@ -112,7 +116,7 @@ class PolygonCollisions : public olc::PixelGameEngine {
                 
                 // Create a vector along the normal of this edge (-y, x)
                 sVec2d axisProj = { -(poly1->p[b].y - poly1->p[a].y), poly1->p[b].x - poly1->p[a].x};
-                
+
                 // Calculate the min and max 1D points for the shadow of r1
                 float min_r1 = INFINITY, max_r1 = -INFINITY;
                 for(int p = 0; p < poly1->p.size(); p++)
@@ -124,7 +128,7 @@ class PolygonCollisions : public olc::PixelGameEngine {
                     min_r1 = std::min(min_r1, q);
                     max_r1 = std::max(max_r1, q);
                 }
-                
+
                 // Calculate the min and max 1D points for the shadow r2
                 float min_r2 = INFINITY, max_r2 = -INFINITY;
                 for(int p = 0; p < poly2->p.size(); p++)
@@ -137,7 +141,7 @@ class PolygonCollisions : public olc::PixelGameEngine {
                     max_r2 = std::max(max_r2, q);
                 }
                 
-                if(!(max_r2 >= min_r1 && max_r1 >= min_r2))
+                if(!(max_r1 >= min_r2 && max_r2 >= min_r1))
                 {
                     // We have an edge that the "shadows" don't overlap, so the objects don't overlap
                     return false;
@@ -146,7 +150,7 @@ class PolygonCollisions : public olc::PixelGameEngine {
             }
 
         }
-        
+  
         // Every "shadow" overlapped, so the shapes overlap
         return true;
     }
@@ -155,7 +159,7 @@ class PolygonCollisions : public olc::PixelGameEngine {
     bool OnUserUpdate(float fElapsedTime) override
     {
         // Shape 1
-        if(GetKey(olc::Key::LEFT).bHeld) vecShapes[0].angle -= 2.0f * fElapsedTime;
+        if(GetKey(olc::Key::LEFT).bHeld)  vecShapes[0].angle -= 2.0f * fElapsedTime;
         if(GetKey(olc::Key::RIGHT).bHeld) vecShapes[0].angle += 2.0f * fElapsedTime;
         if(GetKey(olc::Key::UP).bHeld)
         {
@@ -167,7 +171,7 @@ class PolygonCollisions : public olc::PixelGameEngine {
             vecShapes[0].pos.x -= cosf(vecShapes[0].angle) * 60.0f * fElapsedTime;
             vecShapes[0].pos.y -= sinf(vecShapes[0].angle) * 60.0f * fElapsedTime;
         }
-        
+
         // Shape 2
         if(GetKey(olc::Key::A).bHeld) vecShapes[1].angle -= 2.0f * fElapsedTime;
         if(GetKey(olc::Key::D).bHeld) vecShapes[1].angle += 2.0f * fElapsedTime;
@@ -181,44 +185,43 @@ class PolygonCollisions : public olc::PixelGameEngine {
             vecShapes[1].pos.x -= cosf(vecShapes[1].angle) * 60.0f * fElapsedTime;
             vecShapes[1].pos.y -= sinf(vecShapes[1].angle) * 60.0f * fElapsedTime;
         }
-        
+       
         // Update shapes and reset flags
         for(auto &r : vecShapes)
         {
             for(int i = 0; i < r.o.size(); i++)
             {
-                r.p[i] =
-                {
-                    (r.o[i].x * cosf(r.angle)) - (r.o[i].y * sinf(r.angle)) + r.pos.x,
-                    (r.o[i].x * sinf(r.angle)) + (r.o[i].y * cosf(r.angle)) + r.pos.y,
-                };
-                
+                r.p[i] = {(r.o[i].x * cosf(r.angle)) - (r.o[i].y * sinf(r.angle)) + r.pos.x,
+                          (r.o[i].x * sinf(r.angle)) + (r.o[i].y * cosf(r.angle)) + r.pos.y };
                 r.overlap = false;
             }
         }
-        
+    
         // Check for overlap
         for(int m = 0; m < vecShapes.size(); m++)
             for(int n = m + 1; n < vecShapes.size(); n++)
             {
-                vecShapes[m].overlap = ShapeOverlap_SAT(vecShapes[m], vecShapes[n]);
+                // If this shape is not already known to be overlapping, test it
+                if((!vecShapes[m].overlap || !vecShapes[n].overlap) && ShapeOverlap_SAT(vecShapes[m], vecShapes[n]))
+                {
+                    vecShapes[m].overlap = true;
+                    vecShapes[n].overlap = true;
+                }
             }
-        
         
         // ====== Render ======= //
         Clear(olc::BLUE);
         
         // Draw the shapes
+         // Draw the shapes
         for(auto &r : vecShapes)
         {
             // Draw Boundary
             for(int i = 0; i < r.p.size(); i++)
-                DrawLine(r.p[i].x, r.p[i].y, r.p[(i +1) % r.p.size()].x, r.p[(i +1) % r.p.size()].y);
+                DrawLine(r.p[i].x, r.p[i].y, r.p[(i + 1) % r.p.size()].x, r.p[(i + 1) % r.p.size()].y, (r.overlap ? olc::RED : olc::WHITE));
             
             // Draw Direction
             DrawLine(r.p[0].x, r.p[0].y, r.pos.x, r.pos.y, (r.overlap ? olc::RED : olc::WHITE));
-
-
         }
         
         return true;
@@ -227,7 +230,8 @@ class PolygonCollisions : public olc::PixelGameEngine {
 };
 
 
-int main(int argc, char const *argv[]) {
+int main(int argc, char const *argv[])
+{
 	PolygonCollisions demo;
 	if (demo.Construct(256, 240, 4, 4))
 		demo.Start();
